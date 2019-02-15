@@ -11,7 +11,7 @@ public class MultiClient6 {
 		String s_name = s.nextLine();
 		
 		try {
-			String ServerIP = "lacalhost";
+			String ServerIP = "localhost";
 			if(args.length > 0)
 				ServerIP = args[0];
 			Socket socket = new Socket(ServerIP, 9999); //소켓 객체 생성

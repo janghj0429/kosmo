@@ -34,8 +34,8 @@ public class Main {
 			//-----------------------------------------------------
 			sql = "insert into test2 values(?, ?)";//처음 문법검사할때 문법만 검사해준상태
 			pstmt = con.prepareStatement(sql);//문법검사 한번하고 다음 진행
-			pstmt.setString(1, "홍길동");
-			pstmt.setString(2, "1234");
+			pstmt.setString(1, "aa");
+			pstmt.setString(2, "12");
 			updateCount = pstmt.executeUpdate();
 			System.out.println("insertCount : " + updateCount);
 			

@@ -38,12 +38,12 @@ public class PropertieEx {
 					user,
 					pwd);
 			
-			String sql = "select * from employee";
+			String sql = "select password from members where id ='cccc'";
 			pstmt = con.prepareStatement(sql);
 			rs = pstmt.executeQuery();
 			while(rs.next()) {
-				System.out.print("eno : " + rs.getInt(1) + ", ");
-				System.out.println("ename : " + rs.getString(2));
+				System.out.print("eno : " + rs.getString(1) + ", ");
+//				System.out.println("ename : " + rs.getString(2));
 			}
 			
 		} catch (Exception e) {

@@ -30,16 +30,6 @@ class Login//로그인 클래스
 			System.out.print("Password : ");
 			String pw = sc.nextLine();
 			System.out.println("ㅡㅡㅡㅡ");
-			
-//			String search = "select id from blacklist where id ='"+id+"'";
-//			pstmt = con.prepareStatement(search);
-//			rs = pstmt.executeQuery(search);
-//			System.out.println("ㅡbl 검사ㅡㅡㅡ");
-//			if(rs.next()==true) 
-//			{
-//				System.out.println("블랙리스트 접속거부처리");
-//				Login.checkLogin();
-//			}else {
 
 			String search = "select * from members where id ='"+id+"'";
 			pstmt = con.prepareStatement(search);
@@ -54,8 +44,8 @@ class Login//로그인 클래스
 			}else {
 				String getPass = rs.getString("password");
 				if((getPass.equals(pw))==true) {
-					System.out.println("로그인성공");
-					Connect.connection(id);
+					System.out.println("------------------");
+					blackCheck(id);
 				}else {
 					System.out.println("재입력");
 					Login.checkLogin();
@@ -71,6 +61,72 @@ class Login//로그인 클래스
 				if (pstmt != null) pstmt.close();
 				if (con != null) con.close();
 			} catch (SQLException sqle) { }
+		}
+	}
+	static void blackCheck(String id)
+	{
+		Connection con = null;
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		
+		try {
+			con = DriverManager.getConnection(
+					"jdbc:oracle:thin:@localhost:1521:xe",
+					"scott",
+					"tiger");
+			String search = "select * from blacklist where id ='"+id+"'";
+			pstmt = con.prepareStatement(search);
+			rs = pstmt.executeQuery(search);
+			System.out.println("ㅡㅡㅡㅡ");
+			if(rs.next())
+			{
+				System.out.println("블랙리스트 접속거부");
+			}else {
+				System.out.println("ㅜㅜㅜㅜㅜㅜ");
+				System.out.println("로그인성공");
+				connect(id);
+			}
+			
+		}catch(Exception e) {
+			System.out.println("로그인 예외e"+e);
+			e.printStackTrace();
+		} finally {
+			try {
+				if (rs != null) rs.close();
+				if (pstmt != null) pstmt.close();
+				if (con != null) con.close();
+			} catch (SQLException sqle) { }
+		}
+	}
+	
+	static void connect(String id)//로그인 시 접속
+	{
+		System.out.println("이름을 입력해 주세요.");
+		Scanner s = new Scanner(System.in);
+		String s_name = s.nextLine();      //대화명입력
+		
+//		String s_name = id;	//id를 대화명으로 입력
+		try {
+			
+			String ServerIP = "localhost";
+//			if(args.length > 0)
+//				ServerIP = args[0];
+			Socket socket = new Socket(ServerIP, 9999); //소켓 객체 생성		
+			System.out.println("서버와 연결이 되었습니다.");			
+			System.out.println("대기실로갑니다.");
+			//서버에서 보내는 메시지를 사용자의 콘솔에 출력하는 쓰레드.
+			Thread receiver = new Receiver6(socket);
+			receiver.start();
+			
+			//사용자로부터 얻은 문자열을 서버로 전송해주는 역할을 하는 쓰레드.
+//			Thread sender = new Sender6(socket, s_name);
+//			sender.start();
+			
+			new ChatWin(socket, s_name);
+			s.close();
+			
+		}catch(Exception e) {
+			System.out.println("예외[MultiClient class]:"+e);
 		}
 	}
 }
@@ -127,56 +183,6 @@ class Join//가입클래스
 	}
 }
 
-class Connect
-{
-	public static void connection(String id)
-	{
-		
-		System.out.println("이름을 입력해 주세요.");
-		Scanner s = new Scanner(System.in);
-		String s_name = s.nextLine();      //대화명입력
-		
-//	String s_name = id;	//id를 대화명으로 입력
-		try {
-			
-//		Connection con = null;
-//		PreparedStatement pstmt = null;
-//		ResultSet rs = null;
-//
-//		String search = "select id from blacklist where id ='"+id+"'";
-//		pstmt = con.prepareStatement(search);
-//		rs = pstmt.executeQuery(search);
-//		System.out.println("ㅡbl 검사ㅡㅡㅡ");
-//		if(rs.next()) 
-//		{
-//			System.out.println("블랙리스트 접속거부처리");
-//			Login.checkLogin();
-//		}
-			String ServerIP = "localhost";
-//		if(args.length > 0)
-//			ServerIP = args[0];
-			Socket socket = new Socket(ServerIP, 9999); //소켓 객체 생성		
-			System.out.println("서버와 연결이 되었습니다.");			
-			System.out.println("대기실로갑니다.");			
-			System.out.println("/menu 명령어보기");
-			//서버에서 보내는 메시지를 사용자의 콘솔에 출력하는 쓰레드.
-			Thread receiver = new Receiver6(socket);
-			receiver.start();
-			
-			//사용자로부터 얻은 문자열을 서버로 전송해주는 역할을 하는 쓰레드.
-//		Thread sender = new Sender6(socket, s_name);
-//		sender.start();
-			
-			new ChatWin(socket, s_name);
-			s.close();
-			
-		}catch(Exception e) {
-			System.out.println("예외[MultiClient class]:"+e);
-		}
-	}
-	
-}
-
 class MenuViewer
 {
 	public static Scanner keyboard = new Scanner(System.in);	
@@ -199,6 +205,7 @@ public class JhjClient {
 			cnfe.printStackTrace();
 		}
 	}
+	
 
 	public static void main(String[] args)  //throws UnknownHostException, IOException
 	{		
@@ -206,7 +213,21 @@ public class JhjClient {
 		MenuViewer.showMenu();
 		choice=MenuViewer.keyboard.nextInt();
 		MenuViewer.keyboard.nextLine();
-
+//		while(true) {
+//			switch(choice) {
+//			case 1:
+//				Login.checkLogin();
+//				return;
+//			case 2:
+//				Join.checkJoin();
+//				return;
+//			case 3:
+//				System.out.println("프로그램을 종료합니다.");
+//				return;
+//			}
+//		}
+	//	Login login = new Login();
+	//	Join join = new Join();
 		while(true) {
 			if(choice == 1) 	 { 
 				Login.checkLogin(); 
@@ -226,7 +247,31 @@ public class JhjClient {
 				MenuViewer.keyboard.nextLine();
 			}		
 		}
-	
+		
+//		System.out.println("이름을 입력해 주세요.");
+//		Scanner s = new Scanner(System.in);
+//		String s_name;
+//		
+//		try {
+//			String ServerIP = "localhost";
+//			if(args.length > 0)
+//				ServerIP = args[0];
+//			Socket socket = new Socket(ServerIP, 9999); //소켓 객체 생성
+//			System.out.println("서버와 연결이 되었습니다.");
+//			
+//			//서버에서 보내는 메시지를 사용자의 콘솔에 출력하는 쓰레드.
+//			Thread receiver = new Receiver6(socket);
+//			receiver.start();
+//			
+//			//사용자로부터 얻은 문자열을 서버로 전송해주는 역할을 하는 쓰레드.
+////			Thread sender = new Sender6(socket, s_name);
+////			sender.start();
+//			
+//			new ChatWin(socket, s_name);
+//			
+//		}catch(Exception e) {
+//			System.out.println("예외[MultiClient class]:"+e);
+//		}
 	}
 }
 
