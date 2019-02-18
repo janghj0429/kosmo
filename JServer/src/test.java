@@ -47,26 +47,47 @@ public class test {
 	    map.put("B", "b");
 	    map.put("C", "c");
 	    
-	    Map<String, Integer>mapa = new HashMap<String,Integer>();
-	    mapa.put("x", 1);
-	    mapa.put("y", 2);
-	    mapa.put("z", 3);
-	    
-	    int a = 1;
-	    String title = "b";
-	   
-	    	Iterator<String> itr = map.keySet().iterator();
-	    	while(itr.hasNext())
-	    	{
-	    		if(map.get(itr.next()).equals(title))
-	    		{
-	    			
-	    			map.remove(itr.next());
-	    			
-	    		}
-	    	}
+	    String a="Z";
+	    map.remove(a);
+	    Set keyset = map.keySet();
+	    System.out.println("Key set values are" + keyset);
 	    
 	    
+//	    Map<String, Integer>mapa = new HashMap<String,Integer>();
+//	    mapa.put("A", 1);
+//	    mapa.put("B", 2);
+//	    mapa.put("C", 3);
+//	    String title = "b";
+//	    String name;
+//	    Iterator<String> str = map.keySet().iterator();
+//	    while(str.hasNext())
+//	    {
+//	    	name = str.next();
+//	    	System.out.println(name);
+//	    	if((map.get(name)).equals(title) )
+//	    	{
+//	    		int out = mapa.get(name);
+//	    		System.out.println(out);   		
+//	    	}else {
+//	    		System.out.println("ㅡㅡ");
+//	    	}
+//	    }
+	    	
+	    
+//	    int a = 1;
+//	    String title = "b";
+//	   
+//	    	Iterator<String> itr = map.keySet().iterator();
+//	    	while(itr.hasNext())
+//	    	{
+//	    		if(map.get(itr.next()).equals(title))
+//	    		{
+//	    			
+//	    			map.remove(itr.next());
+//	    			
+//	    		}
+//	    	}
+	  
 	    
 //	    while(itr.hasNext())
 //	    {	    	
@@ -80,8 +101,8 @@ public class test {
 //	    		System.out.println("???");
 //	    	}
 //	    }    
-	    Set keyset = map.keySet();
-	    System.out.println("Key set values are" + keyset);
+//	    Set keyset = map.keySet();
+//	    System.out.println("Key set values are" + keyset);
 	    
 	    
 //	    Iterator<String>itr = mapa.keySet().iterator();
