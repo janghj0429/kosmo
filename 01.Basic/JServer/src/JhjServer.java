@@ -7,7 +7,6 @@ import java.net.Socket;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -28,24 +27,24 @@ public class JhjServer
 	String title; //방이름	
 		
 
-	Map<String, String> chatUserMap;		//채팅방에 들어가있는 인원
-	Map<String, Integer> roomInfoMap;		//전체방정보
-	Map<String, PrintWriter> noWaitMap;		  
-	Map<String, Integer> openInfoMap;
+	Map<String, String> chatUserMap;		//채팅방에 들어가있는 인원  이름 방제목
+	Map<String, Integer> roomInfoMap;		//전체방정보				방제목 인원수
+	Map<String, PrintWriter> noWaitMap;		//채팅중인 인원정보			이름 출력		  
+	Map<String, Integer> openInfoMap;		//공개방 정보				방제목 인원수
 	
 	//비공개방
-	Map<String, String> secretUserMap;
-	Map<String, Integer> pwInfoMap;
-	Map<String, Integer> secretInfoMap;
+	Map<String, String> secretUserMap;		//비공채팅방 입장인원		이름 방제목
+	Map<String, Integer> pwInfoMap;			//비공개방 비번 정보		방제목 비밀번호
+	Map<String, Integer> secretInfoMap;		//비공개방 방 정보			방제목 인원수
 	
-	Map<String, String> roomOwnerMap;
-	Map<String, PrintWriter> guestMap;
+	Map<String, String> roomOwnerMap;		//방장 정보					방제목 이름
+	Map<String, PrintWriter> guestMap;		//대기실인원정보			이름 출력
 	
-	Map<String, String> banListMap;
-	Map<String, String> serverBanWordMap;
-	Map<String, String> privateBanWordMap;
+	Map<String, String> banListMap;			//영구강퇴 정보				이름 방제목
+	Map<String, String> serverBanWordMap;	//서버금칙어 				단어 서버
+	Map<String, String> privateBanWordMap;	//개인금칙어				단어 개인이름(나중엔 아이디로 변경지정해야됨)
 	
-	String answer; //초대 대답
+	Map<String, BufferedReader> inviteInfoMap; //초대 대답					이름 입력
 	
 	//생성자
 	public JhjServer() {
@@ -53,6 +52,9 @@ public class JhjServer
 		clientMap = new HashMap<String, PrintWriter>();
 		//해쉬맵 동기화 설정.
 		Collections.synchronizedMap(clientMap);
+		
+		inviteInfoMap = new HashMap<String, BufferedReader>();
+		Collections.synchronizedMap(inviteInfoMap);
 		
 		chatUserMap = new HashMap<String, String>();
 		Collections.synchronizedMap(chatUserMap);
@@ -130,36 +132,33 @@ public class JhjServer
 		msg = msg.substring(0, msg.length()-1) + "]";
 		out.println(msg);
 	}
-	public void msgCheck(String name, String s, PrintWriter out)
+	
+	public String msgCheck(String name, String s)  //금칙어 체크 메서드
 	{
+		PrintWriter out = clientMap.get(name);
 		if(serverBanWordMap.containsKey(s))
 		{
-			out.println("서버 금칙어입니다.");
+			String alert = serverBanWordMap.get(s);
+			out.println("해당단어는 서버 금칙어입니다.");
+			s = "서버 금칙어";
+			return s;
 		}
 		else if(privateBanWordMap.containsKey(s))
 		{
-			out.println("개인 금칙어입니다.");
+			out.println("해당 단어는 개인 금칙어입니다.");
+			s = "개인 금칙어";
+			return s;
 		}
 		else
 		{
-			
+			return s;
 		}
 	}
 	
 	//귓속말
 	public void sendTo(String name, String s)
-	{
-//		Iterator<String> it = clientMap.keySet().iterator();
-//		
-//		StringTokenizer token = new StringTokenizer(s);
-//		String order = token.nextToken();
-//		String toname = token.nextToken();
-//		String msg = token.nextToken();
-//		
-//		PrintWriter to_out = (PrintWriter)clientMap.get(toname);
-//		to_out.println("["+name+"]"+"->"+ "["+toname+"] "+msg);
-//		System.out.println("rere");
-		
+	{	
+		msgCheck(name, s);
 		int start = s.indexOf(" ")+1;
 		int end = s.indexOf(" ",start);
 		if (end != -1) {
@@ -172,28 +171,11 @@ public class JhjServer
 				to_out.flush();
 			}
 		}
-		
-//		while(it.hasNext())
-//		{
-//			String mapName = it.next();
-//			try {
-//				PrintWriter to_out = (PrintWriter)clientMap.get(it.next());
-//				if(name.equals(mapName))
-//				{
-//					to_out.println("["+name+"] "+msg);
-//				}else
-//				{
-//					mapName=it.next();
-//					continue;
-//				}
-//		
-//			} catch(Exception e) {
-//				System.out.println("예외 to" +e);
-//			}
-//		}
 	}
+	
 	public void guestMsg(String name, String s)
-	{
+	{	
+		msgCheck(name, s);
 		Iterator<String> it = guestMap.keySet().iterator();
 		
 		while(it.hasNext()) {
@@ -210,8 +192,9 @@ public class JhjServer
 	}
 	
 	//접속된 모든 클라이언트들에게 메시지를 전달.
-	public void sendAllMsg(String user, String msg)
+	public void sendAllMsg(String user, String msg)//공지 사항으로 변경 해도 될듯
 	{
+		msgCheck(user, msg);
 		//출력스트림을 순차적으로 얻어와서 해당 메시지를 출력한다.
 		Iterator<String> it = clientMap.keySet().iterator();
 		
@@ -275,6 +258,7 @@ public class JhjServer
 	//채팅방 입장 후에 채팅 메서드
 	public void sendChatRoom(String name, String title, String s)
 	{
+		msgCheck(name, s);
 		System.out.println("ㅡㅡㅡㅡ5");
 		Iterator<String> itr = chatUserMap.keySet().iterator();
 		while(itr.hasNext())
@@ -355,8 +339,8 @@ public class JhjServer
 		int i = 0;
 		while(itr.hasNext())
 		{
-			String user = chatUserMap.get(itr.next());
-			if(user.equals(title))
+			String roomName = chatUserMap.get(itr.next());
+			if(title.equals(roomName))
 			{
 				i = i+1;
 			}
@@ -379,14 +363,14 @@ public class JhjServer
 	{
 		System.out.println("ㅡㅡㅡㅡㅁ");
 		int count = secretInfoMap.get(title);		
-		Iterator itr = chatUserMap.keySet().iterator();
+		Iterator<String> itr = chatUserMap.keySet().iterator();
 		int i = 0;
 		System.out.println("ㅡㅡㅡㅡㄴ");
 		while(itr.hasNext())
 		{
 			System.out.println("ㅡㅡㅡㅡㄹ");
-			String user = chatUserMap.get(itr.next());
-			if(user.equals(title))
+			String roomName = chatUserMap.get(itr.next());
+			if(title.equals(roomName))
 			{
 				i = i+1;
 			}
@@ -451,17 +435,19 @@ public class JhjServer
 			}
 		}
 	}
-	public void inviteCheck(String name, String man, PrintWriter out, String answer)
+	public void inviteCheck(String name, String man, String answer)//초대한사람, 초대받은 사람, 받은사람의대답
 	{
+		
 		if(roomOwnerMap.containsValue(name) && answer.equalsIgnoreCase("y"))
 		{
 			System.out.println("-------3");
 			title = chatUserMap.get(name);
-			name = man;;
-			Invite(name, title, out);
+			PrintWriter out = (PrintWriter)clientMap.get(man);
+			Invite(man, title, out);
 		}
 		else
 		{
+			PrintWriter out = (PrintWriter)clientMap.get(name);
 			out.println("방장이 아니라 초대 불가능 or 상대방 거부");
 		}
 	}
@@ -472,17 +458,17 @@ public class JhjServer
 			System.out.println("-------4");
 			enterRoom(name, title, out);
 		}
-		else //비방입장
+		else if(secretInfoMap.containsKey(title))//비방입장
 		{
 			System.out.println("-------5");
 			enterSecretRoom(name, title, out);
 		}
 	}
 	public void kickCheck(String name, String title, PrintWriter out, String kick, PrintWriter to_out)
-	{
+	{//방장이름, 방제목, 방장출력스트림, 강퇴할사람 이름, 강퇴할사람 출력스트림
 		if(roomOwnerMap.containsValue(name))
 		{
-			if( chatUserMap.get(kick).equals(title) )
+			if( title.equals(chatUserMap.get(kick)) )
 			{
 				Kick(name, title, out, kick, to_out);
 			}
@@ -498,134 +484,191 @@ public class JhjServer
 		} 
 	}
 	public void Kick(String name, String title, PrintWriter out, String kick, PrintWriter to_out)
-	{
+	{//방장, 방제목, 방장출력스트림, 강퇴할사람 이름, 강퇴할사람 출력스트림
 		chatUserMap.remove(kick);
 		noWaitMap.remove(kick);
-		secretInfoMap.remove(title);
+		secretUserMap.remove(kick);
 		
 		guestMap.put(kick, to_out);
 		
 		out.println(title+"방에서"+kick+"님이 강퇴당해서 퇴장");
 		to_out.println(name+"님에 의해 강퇴당함");
+		String s = "강퇴 되었습니다.";
+		sendChatRoom(name, title, s);
 	}
 	public void banCheck(String name, String title, PrintWriter out, String kick, PrintWriter to_out)
-	{
+	{//방장, 방제목, 방장출력스트림, 강퇴할사람 이름, 강퇴할사람 출력스트림
 		if(roomOwnerMap.containsValue(name))
 		{
-			if( chatUserMap.get(kick).equals(title) )
+			if( title.equals(chatUserMap.get(kick)) )
 			{
 				Ban(name, title, out, kick, to_out);
 			}
 			else
 			{
-				out.println("대상 없음");
+				out.println("대상이 없습니다.");
 			}
 		}
 		else
 		{
 			System.out.println("-------3");
-			out.println("방장이 아니라 안됨");
+			out.println("방장이 아니라 권한이 없습니다.");
 		} 
 	}
 	public void Ban(String name, String title, PrintWriter out, String kick, PrintWriter to_out)
-	{
+	{//방장이름, 방제목, 방장 출력스트림, 영구강퇴대상이름, 대상자 출력스트림
 		chatUserMap.remove(kick);
 		noWaitMap.remove(kick);
-		secretInfoMap.remove(title);
+		secretUserMap.remove(kick);
 		
 		guestMap.put(kick, to_out);
-		banListMap.put(kick, title);
+		banListMap.put(kick, title);//해당 제목 방에서 대상자 영구 강퇴 맵에 정보 등록
 		
 		out.println(title+"방에서"+kick+"님이 영구강퇴당해서 퇴장");
 		to_out.println(name+"님에 의해 영구강퇴당함");
+		String s = "영구강퇴 되었습니다.";
+		sendChatRoom(name, title, s);
 	}
-	public void exitRoom(String name, String title, PrintWriter out)
-	{
-		chatUserMap.remove(name);
-		noWaitMap.remove(name);
-		secretInfoMap.remove(title);
-		
-	}
+//	public void exitRoom(String name, String title, PrintWriter out)
+//	{
+//		chatUserMap.remove(name);
+//		noWaitMap.remove(name);
+//		secretUserMap.remove(name);
+//		
+//		guestMap.put(name, out);
+//	}
 	public void openRoomExit(String name, String title, PrintWriter out)
-	{
+	{//유저 이름, 방제목, 출력스트림
 		System.out.println("--------ox1");
 		chatUserMap.remove(name);
 		noWaitMap.remove(name);
 		guestMap.put(name, out);
-		if(roomOwnerMap.containsValue(name))
+		
+		Iterator<String> itrRn = chatUserMap.keySet().iterator();
+		int num = 0;
+		while(itrRn.hasNext())
 		{
-			System.out.println("--------ox2");
-			roomOwnerMap.remove(title);
-			if(chatUserMap.containsValue(title))
+			System.out.println("ㅡㅡㅡㅡㄹ");
+			String roomName = chatUserMap.get(itrRn.next());
+			if(title.equals(roomName))
 			{
+				num = num+1;
+			}
+		}
+		//이미 해당인원 나간상황
+		//먼저 인원체크 1명이면 방장이 남을 수 밖에 없음. 방장이 퇴장하면 0명 되서 방사라짐.
+		//2명에서 한명 나갈때, 방장이 나갈때, 비 방장이 나갈때.
+		if(num >= 1)//방제 인원남아있을때
+		{
+			if(roomOwnerMap.containsValue(name))
+			{
+				System.out.println("--------ox2");
+				roomOwnerMap.remove(title);
+				
 				System.out.println("--------ox3");
 				String s = "이 방에서 퇴장.";
 				sendChatRoom(name, title, s);
 				Iterator<String> itr = chatUserMap.keySet().iterator();
-				name = itr.next();
-				roomOwnerMap.put(title, name);
+				String ownerName = itr.next();
+				roomOwnerMap.put(title, ownerName);
+				//방장 변경
 				s = "으로 방장 변경.";
-				sendChatRoom(name, title, s);
+				sendChatRoom(ownerName, title, s);
 				Set set = roomOwnerMap.entrySet();
 				System.out.println(set);
+				
 			}
 			else
 			{
-				System.out.println("--------ox4");
-				roomInfoMap.remove(title);	
-				openInfoMap.remove(title);
+				System.out.println("--------ox5");
+				String s = "이 방에서 퇴장.";
+				sendChatRoom(name, title, s);
 			}
+			
 		}
-		else
+		else//방에 남은인원이 없을때
 		{
-			System.out.println("--------ox5");
-			String s = "이 방에서 퇴장.";
-			sendChatRoom(name, title, s);
+			roomInfoMap.remove(title);
+			openInfoMap.remove(title);
+			roomOwnerMap.remove(title);
 		}
+		
 	}
 	public void secretRoomExit(String name, String title, PrintWriter out)
 	{
 		System.out.println("--------s x");
-		chatUserMap.remove(name);
+		chatUserMap.remove(name);	
 		noWaitMap.remove(name);
+		secretUserMap.remove(name);
+		
 		guestMap.put(name, out);
-		if(roomOwnerMap.containsValue(name))
+		
+		Iterator<String> itrRn = chatUserMap.keySet().iterator();
+		int num = 0;
+		while(itrRn.hasNext())
 		{
-			roomOwnerMap.remove(title);
-			if(chatUserMap.containsValue(title))
+			System.out.println("ㅡㅡㅡㅡㄹ");
+			String roomName = chatUserMap.get(itrRn.next());
+			if(title.equals(roomName))
 			{
+				num = num+1;
+			}
+		}
+		
+		if(num >= 1)//방제 인원남아있을때
+		{
+			if(roomOwnerMap.containsValue(name))
+			{
+				System.out.println("--------ox2");
+				roomOwnerMap.remove(title);
+				
+				System.out.println("--------ox3");
 				String s = "이 방에서 퇴장.";
 				sendChatRoom(name, title, s);
 				Iterator<String> itr = chatUserMap.keySet().iterator();
-				name = itr.next();
-				roomOwnerMap.put(title, name);
+				String ownerName = itr.next();
+				roomOwnerMap.put(title, ownerName);
+				//방장 변경
 				s = "으로 방장 변경.";
-				sendChatRoom(name, title, s);
+				sendChatRoom(ownerName, title, s);
 				Set set = roomOwnerMap.entrySet();
 				System.out.println(set);
-//				String owner = roomOwnerMap.get(title);
-//				System.out.println(roomOwnerMap.);
+				
 			}
 			else
 			{
-				roomInfoMap.remove(title);	
-				secretInfoMap.remove(title);
-				pwInfoMap.remove(title);
+				System.out.println("--------ox5");
+				String s = "이 방에서 퇴장.";
+				sendChatRoom(name, title, s);
 			}
+			
 		}
-		else
+		else//방에 남은인원이 없을때
 		{
-			String s = "이 방에서 퇴장.";
-			sendChatRoom(name, title, s);		
+			roomInfoMap.remove(title);
+			secretInfoMap.remove(title);
+			pwInfoMap.remove(title);
+			secretInfoMap.remove(title);
+			roomOwnerMap.remove(title);
 		}
 	}
+	
 	public void successionOwner(String name, String title, String man)
-	{
-		roomOwnerMap.remove(title);
-		roomOwnerMap.put(title, man);
+	{//방장 이름, 방제목, 승계할 대상이름
+		Iterator<String> itr = chatUserMap.keySet().iterator();
+		if( title.equals(chatUserMap.get(man)) )
+		{
+			roomOwnerMap.remove(title);
+			roomOwnerMap.put(title, man); //방장 지칭된 대상으로 승계 
+			
+			String s = "이 방장이 되었습니다.";
+			sendChatRoom(man, title, s);	
+		}else
+		{
+			PrintWriter out = (PrintWriter)clientMap.get(name);
+			out.println("대상을 잘못 지정했습니다.");
+		}
 		
-		String s = "이 방장이 되었습니다.";
-		sendChatRoom(man, title, s);	
 	}
 	public void closepublicRoom(String name, String title, PrintWriter out) 
 	{
@@ -641,12 +684,12 @@ public class JhjServer
 			guestMap.put(name, out);
 			Iterator<String> itr = chatUserMap.keySet().iterator();
 			System.out.println("ㅡㅡㅡㅡㅡ10");
-			while(itr.hasNext())
+			while(chatUserMap.containsValue(title))
 			{
 				System.out.println("ㅡㅡㅡㅡㅡ11");
 				String rn = itr.next();
 				System.out.println(rn);
-				if(chatUserMap.get(rn).equals(title))
+				if(title.equals(chatUserMap.get(rn)))
 				{				
 					System.out.println("ㅡㅡㅡㅡㅡ12");
 					chatUserMap.remove(rn);
@@ -661,12 +704,9 @@ public class JhjServer
 					guestMap.put(rn, to_out);
 					System.out.println("ㅡㅡㅡㅡㅡ123");
 					out.println(title+"방을닫았습니다.");
-					to_out.println(name+"님이 방을 닫았습니다.");
+					to_out.println(name+"님이"+title+" 방을 닫았습니다.");
 				}
-				else
-				{
-					System.out.println("ㅡㅡㅡㅡ공방닫기");
-				}
+				
 			}		
 			roomInfoMap.remove(title);
 			openInfoMap.remove(title);
@@ -681,21 +721,24 @@ public class JhjServer
 		else
 		{
 			chatUserMap.remove(name);
+			secretUserMap.remove(name);
 			roomOwnerMap.remove(name);
 			noWaitMap.remove(name);
 			guestMap.put(name, out);
 			Iterator<String> itr = chatUserMap.keySet().iterator();
 			System.out.println("ㅡㅡㅡㅡㅡ10");
 			String rn;
-			while(itr.hasNext())
+			while(chatUserMap.containsValue(title))
 			{
+				
 				System.out.println("ㅡㅡㅡㅡㅡ11");
 				rn = itr.next();
 				System.out.println(rn);
-				if(chatUserMap.get(rn).equals(title))
+				if(title.equals(chatUserMap.get(rn)))
 				{				
 					System.out.println("ㅡㅡㅡㅡㅡ12");
 					chatUserMap.remove(rn);
+					secretUserMap.remove(name);
 //					roomInfoMap.remove(title);
 //					openInfoMap.remove(title);
 					roomOwnerMap.remove(rn);
@@ -707,15 +750,13 @@ public class JhjServer
 					guestMap.put(rn, to_out);
 					System.out.println("ㅡㅡㅡㅡㅡ123");
 					out.println(title+"방을닫았습니다.");
-					to_out.println(name+"님이 방을 닫았습니다.");
+					to_out.println(name+"님이" + title +" 방을 닫았습니다.");
 				}
-				else
-				{
-					System.out.println("ㅡㅡㅡㅡ공방닫기");
-				}
+				
 			}		
 			roomInfoMap.remove(title);
 			secretInfoMap.remove(title);
+			pwInfoMap.remove(title);
 		}
 	}
 	
@@ -725,7 +766,6 @@ public class JhjServer
 	
 	public static void main(String[] args) 
 	{	
-		//db연동하고 
 		
 		//서버객체 생성
 		JhjServer ms = new JhjServer();
@@ -769,6 +809,7 @@ public class JhjServer
 				//현재 객체가 가지고있는 소켓을 제외하고 다른 소켓(클라이언트)들에게 접속알림
 				clientMap.put(name, out);//해쉬맵에 키를 name으로 출력스트림 객체를 저장
 				guestMap.put(name, out);//게스트 운영하는 맵
+				inviteInfoMap.put(name, in);//초대 관련 버퍼리더 정보 맵
 				System.out.println("현재 접속자 수는"+clientMap.size()+"명 입니다.");
 				
 				//입력스트림이 null이 아니면 반복
@@ -793,8 +834,9 @@ public class JhjServer
 							
 //							Object obj = clientMap.get(name);
 //							PrintWriter out = (PrintWriter)obj;
-							
-							if(order.equals("roommenu"))
+							if(order.equals("to"))	
+							{	sendTo(name, s);	}
+							else if(order.equals("roommenu"))
 							{
 								System.out.println("--tt");
 								chatRoomMenu(out);
@@ -813,20 +855,21 @@ public class JhjServer
 								System.out.println(name);
 								myRoomList(name, title, out);
 							}
-//							else if(order.equals("invite"))
-//							{
-//								out.println("초대할사람입력: ");
-//								String man = in.readLine();
-//								PrintWriter to_out = (PrintWriter)clientMap.get(man);
-//								out = to_out;
-//								out.println(name+" 님이 초대함, y? or n?");
-//								System.out.println("-------1");
-//								
-//								answer= in.readLine();
-//															
-//								System.out.println("-------2");
-//								inviteCheck(name, man, out, answer);
-//							}
+							else if(order.equals("invite"))
+							{
+								out.println("초대할사람입력: ");
+								String man = in.readLine();
+								PrintWriter to_out = (PrintWriter)clientMap.get(man);
+								BufferedReader to_in = (BufferedReader)inviteInfoMap.get(man);
+								out = to_out;
+								out.println(name+" 님이 초대하셨습니다. 입장하시겠습니까?  y? or n?");
+								System.out.println("-------1");
+								
+								String answer= in.readLine();															
+								System.out.println("-------2");
+								
+								inviteCheck(name, man, answer);
+							}
 							else if(order.equals("kick"))
 							{
 								title = chatUserMap.get(name);
@@ -851,14 +894,14 @@ public class JhjServer
 								{
 									openRoomExit(name, title, out);								
 								}
-								else
+								else if(secretInfoMap.containsKey(title))
 								{
 									secretRoomExit(name,title, out);
 								}
-//								else
-//								{
-//									out.println("잘못된 입력");
-//								}
+								else
+								{
+									out.println("잘못된 입력");
+								}
 //								exitRoom(name, title, out);
 							}
 							else if(order.equals("succession"))
